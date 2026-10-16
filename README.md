@@ -12,7 +12,12 @@ python -m http.server 8000
 
 Opening `index.html` directly from disk won't load the 3D scene (browsers block ES modules on `file://`).
 
-## Publish on GitHub Pages
+## Publish on Netlify
+
+The site is connected to Netlify: every push to `main` redeploys it automatically.
+Settings live in `netlify.toml` (no build command, publish the repo root).
+
+## Publish on GitHub Pages (alternative)
 
 1. Push this folder to a repository. Naming it `Prashanthnaga24.github.io` serves it at `https://prashanthnaga24.github.io/`.
 2. In the repo: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / root**.
