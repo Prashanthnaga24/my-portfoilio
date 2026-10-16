@@ -8,6 +8,8 @@
   if (!fab || !panel) return;
 
   const API = '/api/chat';
+  const SPACE = 'MANO066/Career-takAI';
+  const SPACE_API = 'https://mano066-career-takai.hf.space/gradio_api/call/ask_prashanth';
   const EMAIL = 'prashanthnaga24@gmail.com';
   const STORE = 'pn-chat';
   const SUGGESTIONS = [
@@ -156,35 +158,113 @@
   };
   suggest.innerHTML = SUGGESTIONS.map(([l, q]) => '<button type="button" class="pc-chip" data-q="' + esc(q) + '">' + l + '</button>').join('');
 
+  // Backends, in order of preference:
+  //  'netlify' — this site's own function (only when it has a GROQ_API_KEY)
+  //  'space'   — the shared Hugging Face Space endpoint (uses that Space's Groq key)
+  let backend = null;
+  const spaceUsable = () =>
+    fetch('https://huggingface.co/api/spaces/' + SPACE, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const stage = d && d.runtime && d.runtime.stage;
+        return !stage || ['RUNNING', 'SLEEPING', 'APP_STARTING', 'RUNNING_APP_STARTING', 'RUNNING_BUILDING'].includes(stage);
+      })
+      .catch(() => true); // unknown: try it, fall back on failure
+
   const checkStatus = () => {
     if (checked) return;
     checked = true;
     fetch(API, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setMode(d && d.configured ? 'online' : 'offline'))
-      .catch(() => setMode('offline'));
+      .catch(() => null)
+      .then(async (d) => {
+        if (d && d.configured) backend = 'netlify';
+        else if (await spaceUsable()) backend = 'space';
+        setMode(backend ? 'online' : 'offline');
+      });
+  };
+
+  const pastTurns = () => history.filter((m) => !m.local).map((m) => ({ role: m.role, content: m.content }));
+
+  const askNetlify = async (text, onPartial, signal) => {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: pastTurns() }),
+      signal,
+    });
+    if (!r.ok || !r.body) throw new Error('HTTP ' + r.status);
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let answer = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      answer += dec.decode(value, { stream: true });
+      onPartial(answer);
+    }
+    return answer;
+  };
+
+  // Gradio REST: POST queues the call, GET streams "generating" events with the growing text.
+  const askSpace = async (text, onPartial, signal) => {
+    const r = await fetch(SPACE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [text, pastTurns()] }),
+      signal,
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const { event_id: id } = await r.json();
+    const s = await fetch(SPACE_API + '/' + id, { signal });
+    if (!s.ok || !s.body) throw new Error('HTTP ' + s.status);
+    const reader = s.body.getReader();
+    const dec = new TextDecoder();
+    let buffer = '';
+    let event = '';
+    let answer = '';
+    let done = false;
+    const handle = (line) => {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) {
+        if (event === 'error') throw new Error('Assistant error');
+        if (event === 'generating' || event === 'complete') {
+          try {
+            const out = JSON.parse(line.slice(5).trim());
+            if (Array.isArray(out) && typeof out[0] === 'string' && out[0]) { answer = out[0]; onPartial(answer); }
+          } catch (e) { /* ignore partial line */ }
+          if (event === 'complete') done = true;
+        }
+      }
+    };
+    while (!done) {
+      const { value, done: end } = await reader.read();
+      if (end) break;
+      buffer += dec.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      lines.forEach((l) => handle(l.trim()));
+    }
+    if (buffer) handle(buffer.trim());
+    reader.cancel().catch(() => {});
+    return answer;
   };
 
   const askLive = async (text, onPartial) => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000);
+    // a sleeping Space can need ~30 s to wake up
+    const timer = setTimeout(() => ctrl.abort(), 90000);
     try {
-      const r = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: history.filter((m) => !m.local).map((m) => ({ role: m.role, content: m.content })) }),
-        signal: ctrl.signal,
-      });
-      if (!r.ok || !r.body) throw new Error('HTTP ' + r.status);
-      const reader = r.body.getReader();
-      const dec = new TextDecoder();
       let answer = '';
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        answer += dec.decode(value, { stream: true });
-        onPartial(answer);
+      if (backend === 'netlify') {
+        try {
+          answer = await askNetlify(text, onPartial, ctrl.signal);
+        } catch (e) {
+          answer = '';
+        }
+        if (!answer.trim()) backend = 'space'; // own function failed: try the shared Space
       }
+      if (!answer.trim() && backend === 'space') answer = await askSpace(text, onPartial, ctrl.signal);
       if (!answer.trim()) throw new Error('Empty answer');
       return answer;
     } finally {
