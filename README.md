@@ -17,6 +17,12 @@ Opening `index.html` directly from disk won't load the 3D scene (browsers block 
 The site is connected to Netlify: every push to `main` redeploys it automatically.
 Settings live in `netlify.toml` (no build command, publish the repo root).
 
+### AI chat assistant
+
+The "Ask my AI" chat calls a Netlify Function (`netlify/functions/chat.mjs`, served at `/api/chat`) that answers from `netlify/functions/profile.mjs` using Groq.
+Set **`GROQ_API_KEY`** under *Site configuration → Environment variables* and redeploy. Until then the chat uses built-in quick answers.
+Optional: `GROQ_MODEL` to change the first model tried; `ALLOWED_ORIGINS` (comma-separated) if the site is also served from a custom domain.
+
 ## Publish on GitHub Pages (alternative)
 
 1. Push this folder to a repository. Naming it `Prashanthnaga24.github.io` serves it at `https://prashanthnaga24.github.io/`.

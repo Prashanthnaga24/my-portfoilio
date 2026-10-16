@@ -3,6 +3,11 @@
   publish = "."
   command = ""
 
+# AI chat: netlify/functions/chat.mjs is served at /api/chat.
+# Needs the environment variable GROQ_API_KEY (Site configuration -> Environment variables).
+[functions]
+  directory = "netlify/functions"
+
 [[headers]]
   for = "/*"
   [headers.values]

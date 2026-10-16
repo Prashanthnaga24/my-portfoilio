@@ -238,10 +238,94 @@ strong { font-weight: 700; }
 .bug.on { opacity: 1; }
 .bug svg { width: 100%; height: 100%; }
 .bug.caught { transition: opacity .3s, transform .3s; opacity: 0; pointer-events: none; }
-.toast { position: fixed; left: 50%; bottom: 26px; z-index: 60; translate: -50% 20px; opacity: 0; pointer-events: none; padding: 12px 18px; border-radius: 14px; background: var(--ink); color: var(--paper); font-family: var(--mono); font-size: 13.5px; box-shadow: 5px 5px 0 var(--lime); transition: opacity .3s, translate .35s var(--ease); max-width: calc(100vw - 32px); }
+.toast { position: fixed; left: 50%; bottom: 26px; z-index: 70; translate: -50% 20px; opacity: 0; pointer-events: none; padding: 12px 18px; border-radius: 14px; background: var(--ink); color: var(--paper); font-family: var(--mono); font-size: 13.5px; box-shadow: 5px 5px 0 var(--lime); transition: opacity .3s, translate .35s var(--ease); max-width: calc(100vw - 32px); }
 .toast.show { opacity: 1; translate: -50% 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
+}
+
+/* ---------- "Ask Prashanth" chat ---------- */
+.chat-fab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 45; height: 56px; padding: 0 20px 0 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 10px; background: var(--ink); color: var(--paper);
+  border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 var(--lime); font-weight: 700; font-size: 15px;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+.chat-fab:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--lime); }
+.chat-fab svg { width: 22px; height: 22px; display: block; }
+.chat-fab .fab-close { display: none; font-size: 18px; }
+.chat-fab.open .fab-open { display: none; }
+.chat-fab.open .fab-close { display: inline; }
+.chat-fab .fab-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); }
+
+.chat-panel {
+  position: fixed; right: 22px; bottom: 92px; z-index: 55; width: min(400px, calc(100vw - 28px)); height: min(620px, calc(100vh - 120px));
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; background: var(--card);
+  border: 1.5px solid var(--ink); box-shadow: 10px 10px 0 var(--ink);
+  opacity: 0; visibility: hidden; transform: translateY(16px) scale(.97); transform-origin: bottom right;
+  transition: opacity .25s, transform .4s var(--ease), visibility .25s;
+}
+.chat-panel.open { opacity: 1; visibility: visible; transform: none; }
+.pc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 12px 14px 16px; background: var(--ink); color: var(--paper); }
+.pc-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pc-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; object-position: 50% 15%; border: 2px solid var(--lime); background: #fff; }
+.pc-name { font-family: var(--display); font-weight: 800; font-size: 18px; line-height: 1.1; }
+.pc-status { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-family: var(--mono); font-size: 11.5px; color: rgba(243, 241, 236, .7); white-space: nowrap; }
+.pc-dot { width: 8px; height: 8px; border-radius: 50%; background: #9aa0a6; }
+.pc-status[data-state="online"] .pc-dot { background: #3ddc84; animation: pulse 2.2s infinite; }
+.pc-status[data-state="offline"] .pc-dot { background: var(--lime); }
+.pc-status[data-state="checking"] .pc-dot { animation: blink 1s steps(1) infinite; }
+.pc-actions { display: flex; gap: 2px; }
+.pc-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; color: rgba(243, 241, 236, .8); }
+.pc-icon:hover { background: rgba(243, 241, 236, .12); color: var(--lime); }
+
+.pc-log { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 14px 8px; display: flex; flex-direction: column; gap: 10px; background: var(--paper); background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 18px 18px; }
+.pc-row { display: flex; animation: pc-in .3s var(--ease) both; }
+.pc-row.me { justify-content: flex-end; }
+@keyframes pc-in { from { opacity: 0; transform: translateY(6px); } }
+.pc-msg { max-width: 86%; padding: 10px 13px; border-radius: 14px; font-size: 14.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.pc-row.bot .pc-msg { background: var(--card); border: 1.5px solid var(--ink); border-bottom-left-radius: 4px; box-shadow: 3px 3px 0 rgba(16, 17, 20, .12); }
+.pc-row.me .pc-msg { background: var(--ink); color: var(--paper); border-bottom-right-radius: 4px; white-space: pre-wrap; font-weight: 500; }
+.pc-msg p { margin: 0 0 7px; }
+.pc-msg p:last-child, .pc-msg ul:last-child, .pc-msg ol:last-child { margin-bottom: 0; }
+.pc-msg ul, .pc-msg ol { margin: 0 0 7px; padding-left: 18px; }
+.pc-msg ul { list-style: disc; }
+.pc-msg li { margin: 3px 0; }
+.pc-msg li::marker { color: var(--pass); }
+.pc-msg strong { font-weight: 800; }
+.pc-msg a { color: inherit; text-decoration: underline; text-decoration-color: var(--pass); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.pc-msg code { font-family: var(--mono); font-size: 12.5px; background: var(--paper-2); padding: 1px 5px; border-radius: 5px; }
+.pc-tag { display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 999px; background: var(--lime); font-family: var(--mono); font-size: 10.5px; font-weight: 600; }
+.pc-streaming > :last-child::after { content: ''; display: inline-block; width: 7px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--pass); animation: blink 1s steps(1) infinite; }
+.pc-typing { display: inline-flex; gap: 5px; padding: 13px 15px; }
+.pc-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); animation: pc-bounce 1.2s infinite ease-in-out; }
+.pc-typing span:nth-child(2) { animation-delay: .15s; }
+.pc-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes pc-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .3; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+.pc-suggest { display: flex; gap: 6px; padding: 8px 12px 2px; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--line); background: var(--card); }
+.pc-suggest::-webkit-scrollbar { display: none; }
+.pc-chip { flex-shrink: 0; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--ink); font-size: 12.5px; font-weight: 700; background: var(--card); transition: background .2s, transform .2s; }
+.pc-chip:hover { background: var(--lime); transform: translateY(-1px); }
+.pc-form { display: flex; align-items: flex-end; gap: 8px; margin: 8px 10px 4px; padding: 5px 5px 5px 14px; border-radius: 22px; border: 1.5px solid var(--ink); background: #fff; }
+.pc-form:focus-within { box-shadow: 3px 3px 0 var(--lime); }
+.pc-input { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: none; font: inherit; font-size: 14.5px; line-height: 1.5; padding: 7px 0; max-height: 120px; color: var(--ink); }
+.pc-input::placeholder { color: var(--muted); }
+.pc-send { width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; background: var(--ink); color: var(--lime); font-size: 18px; font-weight: 800; display: grid; place-items: center; }
+.pc-send:disabled { opacity: .3; cursor: default; }
+.pc-foot { padding: 2px 14px 10px; text-align: center; font-size: 11px; color: var(--muted); background: var(--card); }
+.pc-foot a { text-decoration: underline; }
+
+@media (max-width: 600px) {
+  .chat-fab { right: 14px; bottom: 14px; height: 52px; padding: 0 16px 0 14px; }
+  .chat-fab .fab-label { display: none; }
+  .chat-panel { inset: 0; width: 100%; height: 100%; height: 100dvh; border-radius: 0; border: 0; box-shadow: none; transform: translateY(24px); }
+  .chat-panel.open { transform: none; }
+  body.chat-open { overflow: hidden; }
+  body.chat-open .chat-fab, body.chat-open .bug { display: none; }
+  .pc-head { padding-top: max(14px, env(safe-area-inset-top)); }
+  .pc-foot { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .pc-input { font-size: 16px; }
 }
